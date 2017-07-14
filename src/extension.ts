@@ -2,6 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 
 let taskProvider: vscode.Disposable | undefined;
 
@@ -51,6 +52,22 @@ export function deactivate() {
     }
 }
 
+async function readFile(file: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+        fs.readFile(file, (err, data) => {
+            if (err) {
+                reject(err);
+            }
+            resolve(data.toString());
+        });
+    });
+}
+
+interface CakeTaskDefinition extends vscode.TaskDefinition {
+    script: string;
+    file?: string;
+}
+
 async function getCakeScriptsAsTasks(): Promise<vscode.Task[]> {
     let workspaceRoot = vscode.workspace.rootPath;
     let emptyTasks: vscode.Task[] = [];
@@ -59,5 +76,30 @@ async function getCakeScriptsAsTasks(): Promise<vscode.Task[]> {
         return emptyTasks;
     }
 
-    return emptyTasks;
+    vscode.workspace.findFiles('**/*.cake').then((files) => {
+        if (files.length === 0) {
+            return emptyTasks;
+        }
+
+        try {
+            const result: vscode.Task[] = [];
+            files.forEach(file => {
+                const contents = fs.readFileSync(file.fsPath).toString();
+                console.log(contents);
+                const taskName = 'NuGet-Restore';
+                const kind: CakeTaskDefinition = {
+                    type: 'cake',
+                    script: taskName
+                };
+                const task = new vscode.Task(kind, `run ${taskName}`, 'cake', new vscode.ShellExecution(`npm run ${taskName}`));
+                task.group = vscode.TaskGroup.Build;
+                console.log(task);
+                result.push(task);
+            });
+            console.log(result);
+            return Promise.resolve(result);
+        } catch (e) {
+            return Promise.resolve(emptyTasks);
+        }
+    });
 };
