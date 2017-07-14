@@ -3,6 +3,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+let taskProvider: vscode.Disposable | undefined;
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -22,8 +24,40 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(disposable);
+    function onConfigurationChanged() {
+        if (taskProvider) {
+            taskProvider.dispose();
+            taskProvider = undefined;
+        } else if (!taskProvider) {
+            taskProvider = vscode.workspace.registerTaskProvider('cake', {
+                provideTasks: () => {
+                    return getCakeScriptsAsTasks();
+                },
+                resolveTask(_task: vscode.Task): vscode.Task | undefined {
+                    return undefined;
+                }
+            });
+        }
+    }
+
+    vscode.workspace.onDidChangeConfiguration(onConfigurationChanged);
+    onConfigurationChanged();
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+    if (taskProvider) {
+        taskProvider.dispose();
+    }
 }
+
+async function getCakeScriptsAsTasks(): Promise<vscode.Task[]> {
+    let workspaceRoot = vscode.workspace.rootPath;
+    let emptyTasks: vscode.Task[] = [];
+
+    if (!workspaceRoot) {
+        return emptyTasks;
+    }
+
+    return emptyTasks;
+};

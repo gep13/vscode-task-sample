@@ -11,14 +11,47 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.sayHello"
+        "onCommand:extension.sayHello",
+        "onCommand:workbench.action.tasks.runTask"
     ],
     "main": "./out/src/extension",
     "contributes": {
         "commands": [{
             "command": "extension.sayHello",
             "title": "Hello World"
-        }]
+        }],
+        "configuration": {
+            "id": "cake",
+            "type": "object",
+            "title": "Cake",
+            "properties": {
+              "cake.autoDetect": {
+                "type": "string",
+                "enum": [
+                  "off",
+                  "on"
+                ],
+                "default": "on",
+                "description": "%config.cake.autoDetect%"
+              }
+            }
+          },
+        "taskDefinitions": [
+            {
+              "type": "cake",
+              "required": ["script"],
+              "properties": {
+                "script": {
+                  "type": "string",
+                  "description": "The npm script to customize"
+                },
+                "file": {
+                  "type": "string",
+                  "description": "The package.json file that provides the task. Can be omitted."
+                }
+              }
+            }
+          ]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
