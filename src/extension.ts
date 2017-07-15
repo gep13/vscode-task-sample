@@ -15,8 +15,8 @@ export function activate(context: vscode.ExtensionContext) {
             taskProvider = undefined;
         } else if (!taskProvider) {
             taskProvider = vscode.workspace.registerTaskProvider('cake', {
-                provideTasks: () => {
-                    return getCakeScriptsAsTasks();
+                provideTasks: async () => {
+                    return await getCakeScriptsAsTasks();
                 },
                 resolveTask(_task: vscode.Task): vscode.Task | undefined {
                     return undefined;
@@ -49,19 +49,15 @@ async function getCakeScriptsAsTasks(): Promise<vscode.Task[]> {
         return emptyTasks;
     }
 
-    vscode.workspace.findFiles('**/*.cake').then((files) => {
+    try {
+        let files = await vscode.workspace.findFiles('**/*.cake');
         if (files.length === 0) {
             return emptyTasks;
         }
-
-        try {
-            const result: vscode.Task[] = [];
-            result.push(new vscode.Task({type: 'cake', script: 'NuGet-Restore'} as CakeTaskDefinition, 'Nuget-Restore', 'cake', new vscode.ShellExecution('npm install'), []));
-
-            console.log(result);
-            return Promise.resolve(result);
-        } catch (e) {
-            return Promise.resolve(emptyTasks);
-        }
-    });
+        const result: vscode.Task[] = [];
+        result.push(new vscode.Task({type: 'cake', script: 'NuGet-Restore'} as CakeTaskDefinition, 'Nuget-Restore', 'cake', new vscode.ShellExecution('npm install'), []));
+        return result;
+    } catch (e) {
+        return [];
+    }
 };
