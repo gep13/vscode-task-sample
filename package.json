@@ -1,6 +1,6 @@
 {
-    "name": "cake-vscode",
-    "displayName": "cake-vscode",
+    "name": "cake-vscode-test",
+    "displayName": "cake-vscode-test",
     "description": "Extension to allow execution of Cake Tasks",
     "version": "0.0.1",
     "publisher": "cake-build",

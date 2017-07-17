@@ -3,6 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as os from 'os';
 
 let taskProvider: vscode.Disposable | undefined;
 
@@ -50,12 +51,40 @@ async function getCakeScriptsAsTasks(): Promise<vscode.Task[]> {
     }
 
     try {
-        let files = await vscode.workspace.findFiles('**/*.cake');
+        let files = await vscode.workspace.findFiles('**/*.cake', 'tools');
         if (files.length === 0) {
             return emptyTasks;
         }
         const result: vscode.Task[] = [];
-        result.push(new vscode.Task({type: 'cake', script: 'NuGet-Restore'} as CakeTaskDefinition, 'Nuget-Restore', 'cake', new vscode.ShellExecution('npm install'), []));
+
+        files.forEach(file => {
+            const contents = fs.readFileSync(file.fsPath).toString();
+
+            let taskRegularExpression = /Task\("(.*?)"\)/g;
+
+            let matches, taskNames = [];
+            while (matches = taskRegularExpression.exec(contents)) {
+                taskNames.push(matches[1]);
+            }
+
+            taskNames.forEach(taskName => {
+                const kind: CakeTaskDefinition = {
+                    type: 'cake',
+                    script: taskName
+                };
+
+                let buildCommand = `./build.sh --target \"${taskName}\"`;
+                if (os.platform() === "win32") {
+                    buildCommand = `powershell -ExecutionPolicy ByPass -File build.ps1 -target \"${taskName}\"`;
+                }
+
+                const buildTask = new vscode.Task(kind, `Run ${taskName}`, 'Cake', new vscode.ShellExecution(`${buildCommand}`));
+                buildTask.group = vscode.TaskGroup.Build;
+
+                result.push(buildTask);
+            });
+        });
+
         return result;
     } catch (e) {
         return [];
